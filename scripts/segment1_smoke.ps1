@@ -1,0 +1,10 @@
+$ErrorActionPreference = "Stop"
+
+Write-Host "Segment 1 smoke checklist"
+Write-Host "1. Start services: docker compose up --build"
+Write-Host "2. Create admin: POST /api/auth/bootstrap-admin"
+Write-Host "3. Login: POST /api/auth/login"
+Write-Host "4. Check protected route: GET /api/auth/me"
+Write-Host "5. Check LLM config: GET /api/llm/config"
+Write-Host "6. Check Groq smoke: POST /api/llm/smoke-test"
+Write-Host "Local API URL: http://localhost:8010"

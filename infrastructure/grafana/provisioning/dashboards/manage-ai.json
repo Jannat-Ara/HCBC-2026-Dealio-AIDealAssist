@@ -1,0 +1,25 @@
+{
+  "title": "Manage AI Operations",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Approval Queue",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 5 },
+      "targets": [{ "expr": "manage_ai_approval_queue_depth", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Workflows",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 5 },
+      "targets": [{ "expr": "manage_ai_workflows_total", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tasks",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 5 },
+      "targets": [{ "expr": "manage_ai_tasks_total", "refId": "A" }]
+    }
+  ]
+}

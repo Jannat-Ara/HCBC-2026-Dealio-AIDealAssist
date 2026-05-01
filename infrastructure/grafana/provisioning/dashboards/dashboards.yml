@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Manage AI
+    orgId: 1
+    folder: Manage AI
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

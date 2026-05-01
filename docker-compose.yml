@@ -1,0 +1,111 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: manage_ai
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./backend/migrations/002_segment3_workflow_columns.sql:/docker-entrypoint-initdb.d/002_segment3_workflow_columns.sql:ro
+      - ./backend/migrations/003_segment4_operational_tables.sql:/docker-entrypoint-initdb.d/003_segment4_operational_tables.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d manage_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    ports:
+      - "8010:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+
+  celery_worker:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.celery_app.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
+
+  celery_beat:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.celery_app.celery_app beat --loglevel=info
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    image: nginx:1.27-alpine
+    ports:
+      - "3010:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  redis_data:
+  grafana_data:

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage AI — Autonomous Agent Platform</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-mark-lg">M</div>
+      <h1>Manage AI</h1>
+      <p>Autonomous AI Agent Platform</p>
+    </div>
+    <form id="loginForm" class="stack">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="loginEmail" value="admin@example.com" required/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" value="change-this-password" required/>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="loginBtn">Sign In</button>
+      <p id="loginError" class="login-error hidden"></p>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal-overlay hidden" onclick="handleOverlayClick(event)">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modalTitle"></h3>
+      <button class="icon-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button id="modalConfirm" class="btn btn-primary">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app" class="app-shell hidden">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-mark">M</div>
+      <div class="sidebar-brand">
+        <span class="brand-name">Manage AI</span>
+        <span class="brand-sub">Agent Platform</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="overview"    data-title="Overview">          <span class="nav-icon">◈</span><span class="nav-label">Overview</span></button>
+      <button class="nav-item"        data-view="departments" data-title="Departments">        <span class="nav-icon">⊞</span><span class="nav-label">Departments</span></button>
+      <button class="nav-item"        data-view="workflow"    data-title="Workflows">          <span class="nav-icon">⟳</span><span class="nav-label">Workflows</span></button>
+      <button class="nav-item"        data-view="report"      data-title="Decision Reports">   <span class="nav-icon">◉</span><span class="nav-label">Reports</span></button>
+      <button class="nav-item"        data-view="kb"          data-title="Knowledge Base">     <span class="nav-icon">⬡</span><span class="nav-label">Knowledge Base</span></button>
+      <button class="nav-item"        data-view="task"        data-title="Department Tasks">   <span class="nav-icon">☑</span><span class="nav-label">Tasks</span></button>
+      <button class="nav-item"        data-view="ops"         data-title="Operations">         <span class="nav-icon">⚙</span><span class="nav-label">Operations</span></button>
+      <button class="nav-item"        data-view="settings"    data-title="Agent Settings">     <span class="nav-icon">◎</span><span class="nav-label">Settings</span></button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar" id="userAvatar">A</div>
+        <div class="user-info">
+          <span id="userEmailDisplay">admin</span>
+          <span id="userRoleDisplay">admin</span>
+        </div>
+      </div>
+      <button class="icon-btn icon-btn-light" onclick="logout()" title="Sign out">↩</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h2 id="pageTitle">Overview</h2>
+      </div>
+      <div class="topbar-right">
+        <div id="industryBadge" class="industry-badge hidden"></div>
+        <div class="api-health">
+          <span class="health-dot" id="healthDot"></span>
+          <span id="healthText">Connecting...</span>
+        </div>
+        <a href="http://localhost:8010/docs" target="_blank" class="btn btn-ghost btn-sm">API Docs ↗</a>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ═══════════ OVERVIEW ═══════════ -->
+      <section id="overviewView" class="view active-view">
+        <div id="metricGrid" class="metric-grid"></div>
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Recent Workflows</h3>
+              <button class="btn btn-ghost btn-sm" onclick="loadOverview()">↺ Refresh</button>
+            </div>
+            <div id="recentWorkflows" class="item-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Pending Approvals</h3>
+              <span class="badge badge-warning" id="pendingBadge">0</span>
+            </div>
+            <div id="pendingApprovals" class="item-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ DEPARTMENTS ═══════════ -->
+      <section id="departmentsView" class="view">
+        <div class="dept-tab-bar" id="deptTabBar">
+          <button class="dept-tab active" data-dept="finance">Finance</button>
+          <button class="dept-tab" data-dept="hr">HR</button>
+          <button class="dept-tab" data-dept="operations">Operations</button>
+          <button class="dept-tab" data-dept="legal">Legal</button>
+          <button class="dept-tab" data-dept="sales">Sales</button>
+        </div>
+
+        <div id="deptMetrics" class="metric-grid" style="grid-template-columns:repeat(4,1fr)"></div>
+
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <h3 id="deptWorkflowsTitle">Workflows</h3>
+              <button class="btn btn-ghost btn-sm" onclick="reloadDept()">↺</button>
+            </div>
+            <div id="deptWorkflowList" class="item-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <h3 id="deptTasksTitle">Tasks</h3>
+            </div>
+            <div id="deptTaskBoard" class="dept-task-board"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ WORKFLOWS ═══════════ -->
+      <section id="workflowView" class="view">
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Submit New Objective</h3>
+              <span class="badge badge-gray">Step 1 of 5</span>
+            </div>
+            <form id="objectiveForm" class="stack">
+              <div class="field">
+                <label>Department <span class="req">*</span></label>
+                <select id="objDept">
+                  <option value="finance">Finance</option>
+                  <option value="hr">HR</option>
+                  <option value="operations">Operations</option>
+                  <option value="legal">Legal</option>
+                  <option value="sales">Sales</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Priority <span class="req">*</span></label>
+                <select id="objPriority">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Objective <span class="req">*</span></label>
+                <textarea id="objText" rows="5"
+                  placeholder="Describe the business objective clearly.&#10;&#10;Example: Build a quarterly budget review process aligned with CFO guardrails and finance policy for Q2 2025."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary" id="submitBtn">↳ Submit to AI Pipeline</button>
+            </form>
+
+            <div id="pipelineViz" class="pipeline-viz hidden">
+              <div class="pipeline-viz-title">Agent Pipeline — Live</div>
+              <div class="pipeline-track">
+                <div class="pipeline-node" id="pn-orchestrator"><div class="pnode-dot"></div><div class="pnode-name">Orchestrator</div><div class="pnode-desc">Subtask breakdown</div></div>
+                <div class="pipeline-edge"></div>
+                <div class="pipeline-node" id="pn-learner"><div class="pnode-dot"></div><div class="pnode-name">Learner</div><div class="pnode-desc">KB research</div></div>
+                <div class="pipeline-edge"></div>
+                <div class="pipeline-node" id="pn-decision_maker"><div class="pnode-dot"></div><div class="pnode-name">Decision Maker</div><div class="pnode-desc">Recommendation</div></div>
+                <div class="pipeline-edge"></div>
+                <div class="pipeline-node" id="pn-hitl"><div class="pnode-dot pnode-hitl"></div><div class="pnode-name">Human Review</div><div class="pnode-desc">Your approval</div></div>
+                <div class="pipeline-edge"></div>
+                <div class="pipeline-node" id="pn-task_generator"><div class="pnode-dot"></div><div class="pnode-name">Task Generator</div><div class="pnode-desc">Dept tasks</div></div>
+              </div>
+              <div id="pipelineMsg" class="pipeline-msg"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>All Workflows</h3>
+              <button class="btn btn-ghost btn-sm" onclick="loadWorkflows()">↺</button>
+            </div>
+            <div id="workflowList" class="item-list selectable-list"></div>
+          </div>
+        </div>
+
+        <div id="workflowDetail" class="panel mt-1 hidden">
+          <div id="workflowDetailContent"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ REPORTS ═══════════ -->
+      <section id="reportView" class="view">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Decision Reports</h3>
+            <button class="btn btn-ghost btn-sm" onclick="loadReports()">↺ Refresh</button>
+          </div>
+          <div id="reportList"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ KNOWLEDGE BASE ═══════════ -->
+      <section id="kbView" class="view">
+        <div class="info-banner">
+          <strong>How Knowledge Base works:</strong>
+          Create a domain → Upload documents → The <strong>Learner agent</strong> automatically
+          searches all active domains when processing objectives. The system also reads your documents
+          to detect your company's industry automatically.
+        </div>
+
+        <div class="three-col">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Domains</h3>
+              <button class="btn btn-ghost btn-sm" onclick="loadDomains()">↺</button>
+            </div>
+            <form id="domainForm" class="stack-sm" style="margin-bottom:.875rem">
+              <input type="text" id="domainName" placeholder="Domain name (e.g. HR)"/>
+              <input type="text" id="domainDesc" placeholder="Short description"/>
+              <button type="submit" class="btn btn-primary btn-sm">+ Create Domain</button>
+            </form>
+            <div id="domainList" class="item-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header"><h3>Upload Document</h3></div>
+            <form id="uploadForm" class="stack">
+              <div class="field">
+                <label>Domain <span class="req">*</span></label>
+                <select id="uploadDomain"></select>
+              </div>
+              <div class="field">
+                <label>File <span class="req">*</span> <small class="text-muted">(.txt .pdf .docx .csv)</small></label>
+                <input type="file" id="uploadFile" accept=".txt,.pdf,.docx,.csv"/>
+              </div>
+              <div class="field">
+                <label>Metadata (JSON)</label>
+                <textarea id="uploadMeta" rows="2">{ "source": "dashboard" }</textarea>
+              </div>
+              <button type="submit" class="btn btn-primary" id="uploadBtn">Upload to KB</button>
+            </form>
+            <div id="uploadResult" class="result-box hidden"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header"><h3>Search Knowledge Base</h3></div>
+            <form id="searchForm" class="stack-sm" style="margin-bottom:.875rem">
+              <input type="text" id="searchQuery" placeholder="e.g. budget approval process"/>
+              <select id="searchDomain"><option value="">All Domains</option></select>
+              <button type="submit" class="btn btn-primary btn-sm">Search</button>
+            </form>
+            <div id="searchResults" class="item-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ TASKS ═══════════ -->
+      <section id="taskView" class="view">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Department Tasks</h3>
+            <div class="filter-bar">
+              <input type="text" id="taskDeptFilter" placeholder="Filter by dept..." style="width:150px" oninput="loadTasks()"/>
+              <select id="taskStatusFilter" onchange="loadTasks()">
+                <option value="">All Statuses</option>
+                <option value="queued">Queued</option>
+                <option value="in_progress">In Progress</option>
+                <option value="blocked">Blocked</option>
+                <option value="done">Done</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="loadTasks()">↺</button>
+            </div>
+          </div>
+          <div id="taskBoard" class="task-board"></div>
+        </div>
+      </section>
+
+      <!-- ═══════════ OPERATIONS ═══════════ -->
+      <section id="opsView" class="view">
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Workflow Notifications</h3>
+              <button class="btn btn-ghost btn-sm" onclick="loadNotifications()">↺</button>
+            </div>
+            <div id="notifList" class="item-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>Maintenance</h3></div>
+            <div class="stack">
+              <div class="maint-card">
+                <div>
+                  <strong>Approval Expiry Check</strong>
+                  <p>Escalates workflows where the decision report approval deadline has passed.</p>
+                </div>
+                <button class="btn btn-outline" onclick="runExpiryCheck()">Run Now</button>
+              </div>
+              <div id="maintResult" class="result-box hidden"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ SETTINGS ═══════════ -->
+      <section id="settingsView" class="view">
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header"><h3>Agent Pipeline Reference</h3></div>
+            <div class="agent-pipeline-list">
+              <div class="agent-card">
+                <div class="agent-card-header"><div class="agent-num">①</div><strong>Orchestrator</strong><span class="badge badge-primary ml-auto">Llama 3.3 70B</span></div>
+                <p>Decomposes the business objective into structured subtasks. Always runs first.</p>
+                <div class="io-row"><span class="io-tag io-in">IN</span> Free-form objective text</div>
+                <div class="io-row"><span class="io-tag io-out">OUT</span> List of subtasks (title + description)</div>
+              </div>
+              <div class="agent-card">
+                <div class="agent-card-header"><div class="agent-num">②</div><strong>Learner</strong><span class="badge badge-primary ml-auto">Llama 3.1 8B</span></div>
+                <p>Searches the KB across all active domains (RAG). Produces a feasibility report with evidence and gaps.</p>
+                <div class="io-row"><span class="io-tag io-in">IN</span> Subtasks + KB search results</div>
+                <div class="io-row"><span class="io-tag io-out">OUT</span> Feasibility score, confidence, gaps</div>
+              </div>
+              <div class="agent-card">
+                <div class="agent-card-header"><div class="agent-num">③</div><strong>Decision Maker</strong><span class="badge badge-primary ml-auto">Llama 3.3 70B</span></div>
+                <p>Generates a formal business recommendation with risk level and executive summary.</p>
+                <div class="io-row"><span class="io-tag io-in">IN</span> Learner feasibility report</div>
+                <div class="io-row"><span class="io-tag io-out">OUT</span> Recommendation + risk + summary</div>
+              </div>
+              <div class="agent-card agent-card-hitl">
+                <div class="agent-card-header"><div class="agent-num hitl-num">⏸</div><strong>Human-in-the-Loop Gate</strong><span class="badge badge-warning ml-auto">Required</span></div>
+                <p>Pipeline pauses here. Go to <strong>Reports</strong> tab to Approve or Reject before any tasks are created.</p>
+                <div class="io-row"><span class="io-tag io-in">IN</span> Your decision + optional feedback</div>
+                <div class="io-row"><span class="io-tag io-out">OUT</span> Approved → Task Gen / Rejected → re-loops</div>
+              </div>
+              <div class="agent-card">
+                <div class="agent-card-header"><div class="agent-num">④</div><strong>Task Generator</strong><span class="badge badge-primary ml-auto">Llama 3.1 8B</span></div>
+                <p>Creates 2–4 department tasks with instructions, deadlines, and dependencies dispatched to Celery queues.</p>
+                <div class="io-row"><span class="io-tag io-in">IN</span> Approved decision + your feedback</div>
+                <div class="io-row"><span class="io-tag io-out">OUT</span> Department tasks → Redis → Celery</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>LLM Configuration</h3>
+              <button class="btn btn-ghost btn-sm" onclick="loadLLMConfig()">↺</button>
+            </div>
+            <div id="llmConfig" class="item-list"></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
