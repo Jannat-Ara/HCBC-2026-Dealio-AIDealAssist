@@ -7,17 +7,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.security import authenticate_user, create_access_token, get_current_user, hash_password
 from app.database import get_db_session
 from app.models import User, UserRole
-from app.schemas.auth import LoginRequest, Token, UserCreate, UserRead
+from app.schemas.auth import Token, UserCreate, UserRead
+from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=Token)
 async def login(
-    payload: LoginRequest,
+    payload: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> Token:
-    user = await authenticate_user(session, payload.email, payload.password)
+    user = await authenticate_user(session, payload.username, payload.password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
